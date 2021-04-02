@@ -27,6 +27,7 @@ fn main() {
 fn run() -> Result<()> {
     terminal::enable_raw_mode()?;
 
+    let mut inputs = Vec::new();
     loop {
         let input = get_input()?;
         let lowered_input = input.to_lowercase();
@@ -35,7 +36,16 @@ fn run() -> Result<()> {
             return Ok(());
         }
 
+        if lowered_input == "history" {
+            println!("History:");
+            for input in &inputs {
+                println!("  {}", input);
+            }
+            continue;
+        }
+
         println!("Storing '{}'", input);
+        inputs.push(input);
     }
 }
 
