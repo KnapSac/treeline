@@ -4,7 +4,10 @@ use crossterm::{
     terminal::{self, ClearType},
     QueueableCommand,
 };
-use std::io::{self, stdout, Write};
+use std::{
+    io::{self, stdout, Write},
+    process,
+};
 use thiserror::Error;
 
 fn main() {
@@ -16,13 +19,27 @@ fn main() {
         Ok(_) => {}
         Err(err) => {
             eprintln!("{}", err);
-            std::process::exit(1);
+            process::exit(1);
         }
     }
 }
 
 fn run() -> Result<()> {
     terminal::enable_raw_mode()?;
+
+    loop {
+        let input = get_input()?;
+        let lowered_input = input.to_lowercase();
+
+        if lowered_input == "q" || lowered_input == "quit" || lowered_input == "exit" {
+            return Ok(());
+        }
+
+        println!("Storing '{}'", input);
+    }
+}
+
+fn get_input() -> Result<String> {
     print_prompt()?;
 
     let mut line_buffer = String::new();
@@ -33,7 +50,7 @@ fn run() -> Result<()> {
                 modifiers: KeyModifiers::CONTROL,
                 code: KeyCode::Char('c'),
             } => {
-                return Ok(());
+                process::exit(0);
             }
             KeyEvent {
                 code: KeyCode::Enter,
@@ -94,9 +111,8 @@ fn run() -> Result<()> {
     }
 
     println!();
-    println!("{}", line_buffer);
 
-    Ok(())
+    Ok(line_buffer)
 }
 
 fn print_prompt() -> Result<()> {
