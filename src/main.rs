@@ -42,6 +42,32 @@ fn run() -> Result<()> {
                 break;
             }
             KeyEvent {
+                modifiers: KeyModifiers::CONTROL,
+                code: KeyCode::Backspace,
+            } => {
+                // TODO: After support for moving the cursor with the arrow keys is added, this
+                //       implementation will most likely fail
+                let line = line_buffer.clone();
+                let line_parts: Vec<_> = line.rsplitn(2, ' ').collect();
+                if line_parts.len() == 2 {
+                    // `line_buffer` contained multiple words
+                    line_buffer = line_parts.get(1).unwrap().to_string();
+                    let chars_to_remove = line_parts.get(0).unwrap().len() + 1;
+                    stdout()
+                        .queue(cursor::MoveLeft(chars_to_remove as u16))?
+                        .queue(terminal::Clear(ClearType::UntilNewLine))?;
+                } else {
+                    // `line_buffer` contained only 1 word
+                    line_buffer.clear();
+                    stdout()
+                        .queue(cursor::MoveToColumn(0))?
+                        .queue(terminal::Clear(ClearType::CurrentLine))?;
+                    print_prompt()?;
+                }
+
+                stdout().flush()?;
+            }
+            KeyEvent {
                 code: KeyCode::Backspace,
                 ..
             } => {
