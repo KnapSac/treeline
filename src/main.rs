@@ -1,6 +1,7 @@
 use crossterm::{
     cursor,
     event::{read, Event, KeyCode, KeyEvent, KeyModifiers},
+    style::{Colorize, Print},
     terminal::{self, ClearType},
     QueueableCommand,
 };
@@ -101,8 +102,8 @@ fn get_input() -> Result<String> {
                 line_buffer.pop();
                 stdout()
                     .queue(cursor::MoveLeft(1))?
-                    .queue(terminal::Clear(ClearType::UntilNewLine))?;
-                stdout().flush()?;
+                    .queue(terminal::Clear(ClearType::UntilNewLine))?
+                    .flush()?;
             }
             KeyEvent {
                 code: KeyCode::Char(c),
@@ -126,8 +127,7 @@ fn get_input() -> Result<String> {
 }
 
 fn print_prompt() -> Result<()> {
-    print!("> ");
-    stdout().flush()?;
+    stdout().queue(Print("> ".yellow()))?.flush()?;
 
     Ok(())
 }
