@@ -115,4 +115,12 @@ mod tests {
 
         assert!(!trie.find(" "));
     }
+
+    #[test]
+    fn find_prefix() {
+        let mut trie = Trie::new();
+        trie.insert("Hello world!");
+
+        assert!(trie.find("Hello"));
+    }
 }
