@@ -1,0 +1,118 @@
+//! This module provides the [`Trie`] datastructure, a type of search tree.
+#![warn(missing_docs, broken_intra_doc_links)]
+
+use std::collections::HashMap;
+
+/// The `Trie` datastructure.
+///
+/// The current implementation uses [`Node`]s to store the values inside the trie. Each [`Node`]
+/// has a key associated with it, by traversing the trie depth-first, words can be found inside the
+/// trie. Each [`Node`] keeps track of its children using a [`HashMap`], using the key of a child
+/// as the key for the [`HashMap`].
+#[derive(Debug)]
+pub struct Trie {
+    root: Node,
+}
+
+impl Trie {
+    /// Create an empty trie datastructure.
+    pub fn new() -> Self {
+        Self {
+            root: Node::new(' '),
+        }
+    }
+
+    /// Inserts the input into the trie.
+    ///
+    /// If a part of the input is not yet present in the trie, that part is added. The already
+    /// existing part of the input is unchanged.
+    pub fn insert(&mut self, input: &str) {
+        self.root.insert(input);
+    }
+
+    // TODO CV: Is a `bool` the most appropriate thing to return here?
+    /// Returns true if the trie contains the input.
+    pub fn find(&self, input: &str) -> bool {
+        self.root.find(input)
+    }
+}
+
+/// A `Node` in a [`Trie`].
+#[derive(Debug)]
+pub struct Node {
+    key: char,
+    children: HashMap<char, Node>,
+}
+
+impl Node {
+    /// Creates a new `Node` with the given key.
+    pub fn new(key: char) -> Self {
+        Self {
+            key,
+            children: HashMap::new(),
+        }
+    }
+
+    /// Inserts the input under the current node.
+    ///
+    /// If a part of the input is not yet present under the current node, that part is added. The
+    /// already existing part of the input is unchanged.
+    pub fn insert(&mut self, input: &str) {
+        if let Some(root) = input.chars().nth(0) {
+            let root = self.children.entry(root).or_insert(Node::new(root));
+            root.insert(&input[1..]);
+        }
+    }
+
+    /// Returns true if the input is contained in the descendants of the current node.
+    pub fn find(&self, input: &str) -> bool {
+        if let Some(root) = input.chars().nth(0) {
+            if let Some(child) = self.children.get(&root) {
+                return child.find(&input[1..]);
+            } else {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Trie;
+
+    #[test]
+    fn insert_single() {
+        let mut trie = Trie::new();
+        let input = "Hello world!";
+
+        trie.insert(input);
+        assert!(trie.find(input));
+        assert!(!trie.find("Hi there"));
+    }
+
+    #[test]
+    fn insert_multiple() {
+        let mut trie = Trie::new();
+        let input1 = "Hello world!";
+        let input2 = "Hello sir!";
+        let input3 = "Good afternoon!";
+
+        trie.insert(input1);
+        trie.insert(input2);
+        trie.insert(input3);
+
+        assert!(trie.find(input1));
+        assert!(trie.find(input2));
+        assert!(trie.find(input3));
+        assert!(!trie.find("Hi there"));
+    }
+
+    #[test]
+    fn find_in_empty_trie() {
+        let trie = Trie::new();
+
+        assert!(!trie.find(" "));
+    }
+}

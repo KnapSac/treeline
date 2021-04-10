@@ -11,6 +11,8 @@ use std::{
 };
 use thiserror::Error;
 
+mod trie;
+
 fn main() {
     let result = run();
 
