@@ -57,15 +57,15 @@ impl Node {
     /// If a part of the input is not yet present under the current node, that part is added. The
     /// already existing part of the input is unchanged.
     pub fn insert(&mut self, input: &str) {
-        if let Some(root) = input.chars().nth(0) {
-            let root = self.children.entry(root).or_insert(Node::new(root));
+        if let Some(root) = input.chars().next() {
+            let root = self.children.entry(root).or_insert_with(|| Node::new(root));
             root.insert(&input[1..]);
         }
     }
 
     /// Returns a reference to the [`Node`] containing the last character of the input.
     pub fn find(&self, input: &str) -> Option<&Self> {
-        if let Some(root) = input.chars().nth(0) {
+        if let Some(root) = input.chars().next() {
             if let Some(child) = self.children.get(&root) {
                 return child.find(&input[1..]);
             } else {
