@@ -122,4 +122,16 @@ mod tests {
 
         assert!(trie.find("Hello").is_some());
     }
+
+    #[test]
+    fn find_from_prefix() {
+        let mut trie = Trie::new();
+        trie.insert("Hello world!");
+        trie.insert("Hello sir!");
+        trie.insert("Hello miss!");
+
+        if let Some(node) = trie.find("Hello ") {
+            assert!(node.find("sir").is_some());
+        }
+    }
 }
