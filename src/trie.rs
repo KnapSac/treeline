@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-/// The `Trie` datastructure.
+/// The [Trie] datastructure.
 ///
 /// The current implementation uses [`Node`]s to store the values inside the trie. Each [`Node`]
 /// has a key and a value associated with it. The key is the last character of the value, and is
@@ -12,6 +12,33 @@ use std::collections::HashMap;
 ///
 /// To iterate over the words inside the trie, the user has two options: they can either iterate
 /// over all the words in the trie, or they can iterate over the words with a given prefix.
+///
+/// [Trie]: https://en.wikipedia.org/wiki/Trie
+///
+/// # Examples
+///
+/// A basic example, showing how to insert a word into the trie, and how to iterate over the words
+/// in the trie.
+///
+/// ```
+/// use trie::Trie;
+///
+/// let mut trie = Trie::new();
+///
+/// trie.insert("Hello world");
+/// trie.insert("Goedemorgen");
+/// trie.insert("Hello sir");
+///
+/// // Iterate over all the words in the trie
+/// for word in trie.words() {
+///     println("Found word: {}", word);
+/// }
+///
+/// // Iterate over all the words starting with 'Hello'
+/// for word in trie.words_with_prefix("Hello") {
+///     println("Found word: {}", word);
+/// }
+/// ```
 #[derive(Debug)]
 pub struct Trie {
     /// The root node inside the trie.
