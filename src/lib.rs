@@ -87,7 +87,7 @@ impl Trie {
     }
 
     /// Returns a mutable reference to the [`Node`] containing the last character of the `word`.
-    fn find_mut(&mut self, word: &str) -> Option<&mut Node> {
+    fn _find_mut(&mut self, word: &str) -> Option<&mut Node> {
         self.root.find_mut(word)
     }
 
