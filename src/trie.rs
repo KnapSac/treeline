@@ -6,11 +6,20 @@ use std::collections::HashMap;
 /// The `Trie` datastructure.
 ///
 /// The current implementation uses [`Node`]s to store the values inside the trie. Each [`Node`]
-/// has a key associated with it, by traversing the trie depth-first, words can be found inside the
-/// trie. Each [`Node`] keeps track of its children using a [`HashMap`], using the key of a child
-/// as the key for the [`HashMap`].
+/// has a key and a value associated with it. The key is the last character of the value, and is
+/// used as an index into the [`Node::children`] [`HashMap`]. The value contains the word which
+/// would be found when traversing the trie from the root to that node.
+///
+/// To iterate over the words inside the trie, the user has two options: they can either iterate
+/// over all the words in the trie, or they can iterate over the words with a given prefix.
 #[derive(Debug)]
 pub struct Trie {
+    /// The root node inside the trie.
+    ///
+    /// This node serves no other purpose besides providing an easy way to access the nodes in the
+    /// trie. The key and value shouldn't be read, as they have no meaning, and only serve as
+    /// placeholders, to prevent us from having to store them inside an [`Option`], which wouldn't
+    /// make sense as the key and value properties are mandatory on a [`Node`].
     root: Node,
 }
 
@@ -56,9 +65,11 @@ impl Trie {
 
 /// Iterator over the words in a [`Trie`]
 ///
-/// This iterator is returned from the [`Trie::words_with_prefix`] function on a [`Trie`] and will yield
-/// instances of [`String`].
+/// This iterator is returned from the [`Trie::words_with_prefix`] function on a [`Trie`] and will
+/// yield instances of [`String`].
 pub struct TrieRead<'a> {
+    /// Stack to keep track of which [`Node`]s we still need to visit while iterating over the
+    /// words in the trie.
     stack: Vec<&'a Node>,
 }
 
@@ -66,16 +77,24 @@ impl<'a> Iterator for TrieRead<'a> {
     type Item = &'a String;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // Iterates over the words in the trie using depth-first search
         loop {
+            // Get the next node to check
             if let Some(head) = self.stack.pop() {
+                // Store the children on the stack, to be examined later
                 for child in head.children.values() {
                     self.stack.push(child);
                 }
 
+                // If a node has no children, it is the end of a word, and we should return the
+                // value, since that will contain a complete word. If the node does have children,
+                // we don't return here, but simply continue looping until we either reach a node
+                // containing a complete word, or we run out of nodes.
                 if head.children.is_empty() {
                     return Some(&head.value);
                 }
             } else {
+                // We have looked through the entire trie, and are done iterating
                 break;
             }
         }
@@ -87,14 +106,17 @@ impl<'a> Iterator for TrieRead<'a> {
 /// A `Node` in a [`Trie`].
 #[derive(Debug)]
 pub struct Node {
+    /// The last character of the word stored in the value.
     key: char,
+    /// Contains the word which would be found when traversing the trie from the root to this node.
     value: String,
+    /// The children, i.e. words which have `value` as a prefix.
     children: HashMap<char, Node>,
 }
 
 impl Node {
-    /// Creates a new `Node` with the given key.
-    pub fn new(key: char, value: String) -> Self {
+    /// Creates a new `Node` with the given key and value.
+    fn new(key: char, value: String) -> Self {
         Self {
             key,
             value,
@@ -106,7 +128,7 @@ impl Node {
     ///
     /// If a part of the input is not yet present under the current node, that part is added. The
     /// already existing part of the input is unchanged.
-    pub fn insert(&mut self, input: &str) {
+    fn insert(&mut self, input: &str) {
         if let Some(root) = input.chars().next() {
             let prefix = self.value.clone();
             let root = self
