@@ -31,17 +31,25 @@ impl Trie {
         }
     }
 
-    /// Inserts the input into the trie.
+    /// Inserts the `word` into the trie.
     ///
-    /// If a part of the input is not yet present in the trie, that part is added. The already
-    /// existing part of the input is unchanged.
-    pub fn insert(&mut self, input: &str) {
-        self.root.insert(input);
+    /// If a part of the `word` is not yet present in the trie, that part is added. The already
+    /// existing part of the `word` is unchanged.
+    pub fn insert(&mut self, word: &str) {
+        self.root.insert(word);
     }
 
-    /// Returns a reference to the [`Node`] containing the last character of the input.
-    pub fn find(&self, input: &str) -> Option<&Node> {
-        self.root.find(input)
+    /// Deletes the `word` from the trie.
+    ///
+    /// Only the part that is not part of another word will be removed, if part of the `word` is a
+    /// prefix of another word in the trie, that part will not be removed.
+    pub fn delete(&mut self, word: &str) {
+        self.root.delete(word);
+    }
+
+    /// Returns a reference to the [`Node`] containing the last character of the `word`.
+    pub fn find(&self, word: &str) -> Option<&Node> {
+        self.root.find(word)
     }
 
     /// Returns an iterator over the words in the trie with the given prefix.
@@ -124,26 +132,52 @@ impl Node {
         }
     }
 
-    /// Inserts the input under the current node.
+    /// Inserts the `word` under the current node.
     ///
-    /// If a part of the input is not yet present under the current node, that part is added. The
-    /// already existing part of the input is unchanged.
-    fn insert(&mut self, input: &str) {
-        if let Some(root) = input.chars().next() {
+    /// If a part of the `word` is not yet present under the current node, that part is added. The
+    /// already existing part of the `word` is unchanged.
+    fn insert(&mut self, word: &str) {
+        if let Some(root) = word.chars().next() {
             let prefix = self.value.clone();
             let root = self
                 .children
                 .entry(root)
                 .or_insert_with(|| Node::new(root, format!("{}{}", prefix, root)));
-            root.insert(&input[1..]);
+            root.insert(&word[1..]);
         }
     }
 
-    /// Returns a reference to the [`Node`] containing the last character of the input.
-    pub fn find(&self, input: &str) -> Option<&Self> {
-        if let Some(root) = input.chars().next() {
+    /// Deletes the word under the current node.
+    ///
+    /// Only the part that is not part of another word will be removed, if part of the word is a
+    /// prefix of another word under the current node, that part will not be removed.
+    fn delete(&mut self, word: &str) {
+        if let Some(root) = word.chars().next() {
+            if let Some(child) = self.children.get_mut(&root) {
+                // If `child` doesn't have any children, it is the last node in the word, and can
+                // thus safely be removed
+                if child.children.len() == 0 {
+                    self.children.remove(&root);
+                } else {
+                    // Firstly, try to delete the remainder of the word
+                    child.delete(&word[1..]);
+
+                    // Secondly, if `child` has no more children left, it can be safely removed.
+                    // This can be the case when there are a few nodes with only 1 child, this
+                    // takes care that we remove them recursively.
+                    if child.children.len() == 0 {
+                        self.children.remove(&root);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Returns a reference to the [`Node`] containing the last character of the `word`.
+    pub fn find(&self, word: &str) -> Option<&Self> {
+        if let Some(root) = word.chars().next() {
             if let Some(child) = self.children.get(&root) {
-                return child.find(&input[1..]);
+                return child.find(&word[1..]);
             } else {
                 return None;
             }
@@ -185,6 +219,58 @@ mod tests {
     }
 
     #[test]
+    fn delete_single() {
+        let mut trie = Trie::new();
+        let input = "Hello world!";
+
+        trie.insert(input);
+        assert!(trie.find(input).is_some());
+
+        trie.delete(input);
+        assert!(trie.find(input).is_none());
+
+        assert_eq!(len(&trie), 0);
+    }
+
+    #[test]
+    fn delete_prefix() {
+        let mut trie = Trie::new();
+        let input = "Hello world!";
+
+        trie.insert(input);
+        assert!(trie.find(input).is_some());
+
+        trie.delete("Hello");
+        assert!(trie.find(input).is_some());
+
+        assert_eq!(len(&trie), 1);
+    }
+
+    #[test]
+    fn delete_multiple() {
+        let mut trie = Trie::new();
+        let input1 = "Hello world!";
+        let input2 = "Hello sir!";
+        let input3 = "Good afternoon!";
+
+        trie.insert(input1);
+        trie.insert(input2);
+        trie.insert(input3);
+
+        assert!(trie.find(input1).is_some());
+        assert!(trie.find(input2).is_some());
+        assert!(trie.find(input3).is_some());
+
+        trie.delete(input1);
+        assert!(trie.find(input1).is_none());
+
+        trie.delete(input3);
+        assert!(trie.find(input3).is_none());
+
+        assert_eq!(len(&trie), 1);
+    }
+
+    #[test]
     fn find_in_empty_trie() {
         let trie = Trie::new();
 
@@ -209,5 +295,13 @@ mod tests {
         if let Some(node) = trie.find("Hello ") {
             assert!(node.find("sir").is_some());
         }
+    }
+
+    fn len(trie: &Trie) -> usize {
+        let mut len = 0;
+        for _ in trie.words() {
+            len += 1;
+        }
+        len
     }
 }
