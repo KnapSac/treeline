@@ -18,7 +18,7 @@ impl Trie {
     /// Create an empty trie datastructure.
     pub fn new() -> Self {
         Self {
-            root: Node::new(' '),
+            root: Node::new(' ', String::new()),
         }
     }
 
@@ -34,20 +34,70 @@ impl Trie {
     pub fn find(&self, input: &str) -> Option<&Node> {
         self.root.find(input)
     }
+
+    /// Returns an iterator over the words in the trie with the given prefix.
+    pub fn words_with_prefix(&self, prefix: &str) -> TrieRead {
+        let stack = if let Some(head) = self.find(prefix) {
+            head.children.values().collect::<Vec<_>>()
+        } else {
+            vec![]
+        };
+
+        TrieRead { stack }
+    }
+
+    /// Returns an iterator over all the words in the trie.
+    pub fn words(&self) -> TrieRead {
+        TrieRead {
+            stack: self.root.children.values().collect::<Vec<_>>(),
+        }
+    }
+}
+
+/// Iterator over the words in a [`Trie`]
+///
+/// This iterator is returned from the [`Trie::words_with_prefix`] function on a [`Trie`] and will yield
+/// instances of [`String`].
+pub struct TrieRead<'a> {
+    stack: Vec<&'a Node>,
+}
+
+impl<'a> Iterator for TrieRead<'a> {
+    type Item = &'a String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(head) = self.stack.pop() {
+                for child in head.children.values() {
+                    self.stack.push(child);
+                }
+
+                if head.children.is_empty() {
+                    return Some(&head.value);
+                }
+            } else {
+                break;
+            }
+        }
+
+        None
+    }
 }
 
 /// A `Node` in a [`Trie`].
 #[derive(Debug)]
 pub struct Node {
     key: char,
+    value: String,
     children: HashMap<char, Node>,
 }
 
 impl Node {
     /// Creates a new `Node` with the given key.
-    pub fn new(key: char) -> Self {
+    pub fn new(key: char, value: String) -> Self {
         Self {
             key,
+            value,
             children: HashMap::new(),
         }
     }
@@ -58,7 +108,11 @@ impl Node {
     /// already existing part of the input is unchanged.
     pub fn insert(&mut self, input: &str) {
         if let Some(root) = input.chars().next() {
-            let root = self.children.entry(root).or_insert_with(|| Node::new(root));
+            let prefix = self.value.clone();
+            let root = self
+                .children
+                .entry(root)
+                .or_insert_with(|| Node::new(root, format!("{}{}", prefix, root)));
             root.insert(&input[1..]);
         }
     }
