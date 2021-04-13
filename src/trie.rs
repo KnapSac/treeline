@@ -123,26 +123,20 @@ pub struct TrieRead<'a> {
 impl<'a> Iterator for TrieRead<'a> {
     type Item = &'a String;
 
+    // Iterates over the words in the trie using depth-first search
     fn next(&mut self) -> Option<Self::Item> {
-        // Iterates over the words in the trie using depth-first search
-        loop {
-            // Get the next node to check
-            if let Some(head) = self.stack.pop() {
-                // Store the children on the stack, to be examined later
-                for child in head.children.values() {
-                    self.stack.push(child);
-                }
+        while let Some(head) = self.stack.pop() {
+            // Store the children on the stack, to be examined later
+            for child in head.children.values() {
+                self.stack.push(child);
+            }
 
-                // If a node has no children, it is the end of a word, and we should return the
-                // value, since that will contain a complete word. If the node does have children,
-                // we don't return here, but simply continue looping until we either reach a node
-                // containing a complete word, or we run out of nodes.
-                if head.children.is_empty() {
-                    return Some(&head.value);
-                }
-            } else {
-                // We have looked through the entire trie, and are done iterating
-                break;
+            // If a node has no children, it is the end of a word, and we should return the
+            // value, since that will contain a complete word. If the node does have children,
+            // we don't return here, but simply continue looping until we either reach a node
+            // containing a complete word, or we run out of nodes.
+            if head.children.is_empty() {
+                return Some(&head.value);
             }
         }
 
@@ -195,7 +189,7 @@ impl Node {
             if let Some(child) = self.children.get_mut(&root) {
                 // If `child` doesn't have any children, it is the last node in the word, and can
                 // thus safely be removed
-                if child.children.len() == 0 {
+                if child.children.is_empty() {
                     self.children.remove(&root);
                 } else {
                     // Firstly, try to delete the remainder of the word
@@ -204,7 +198,7 @@ impl Node {
                     // Secondly, if `child` has no more children left, it can be safely removed.
                     // This can be the case when there are a few nodes with only 1 child, this
                     // takes care that we remove them recursively.
-                    if child.children.len() == 0 {
+                    if child.children.is_empty() {
                         self.children.remove(&root);
                     }
                 }
