@@ -47,9 +47,21 @@ impl Trie {
         self.root.delete(word);
     }
 
+    /// Deletes the `word` from the trie after the `prefix`, leaving the `prefix` intact.
+    pub fn delete_after_prefix(&mut self, prefix: &str, word: &str) {
+        if let Some(head) = self.root.find_mut(prefix) {
+            head.delete(word);
+        }
+    }
+
     /// Returns a reference to the [`Node`] containing the last character of the `word`.
     pub fn find(&self, word: &str) -> Option<&Node> {
         self.root.find(word)
+    }
+
+    /// Returns a mutable reference to the [`Node`] containing the last character of the `word`.
+    fn find_mut(&mut self, word: &str) -> Option<&mut Node> {
+        self.root.find_mut(word)
     }
 
     /// Returns an iterator over the words in the trie with the given prefix.
@@ -185,6 +197,19 @@ impl Node {
 
         Some(self)
     }
+
+    /// Returns a mutable reference to the [`Node`] containing the last character of the `word`.
+    fn find_mut(&mut self, word: &str) -> Option<&mut Self> {
+        if let Some(root) = word.chars().next() {
+            if let Some(child) = self.children.get_mut(&root) {
+                return child.find_mut(&word[1..]);
+            } else {
+                return None;
+            }
+        }
+
+        Some(self)
+    }
 }
 
 #[cfg(test)]
@@ -242,6 +267,20 @@ mod tests {
 
         trie.delete("Hello");
         assert!(trie.find(input).is_some());
+
+        assert_eq!(len(&trie), 1);
+    }
+
+    #[test]
+    fn delete_after_prefix() {
+        let mut trie = Trie::new();
+        let input = "Hello world!";
+
+        trie.insert(input);
+        assert!(trie.find(input).is_some());
+
+        trie.delete_after_prefix("Hello ", "world!");
+        assert!(trie.find(input).is_none());
 
         assert_eq!(len(&trie), 1);
     }
