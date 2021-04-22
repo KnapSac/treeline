@@ -10,6 +10,7 @@ use std::{
     process,
 };
 use thiserror::Error;
+use treeline::Trie;
 
 fn main() {
     let result = run();
@@ -28,29 +29,20 @@ fn main() {
 fn run() -> Result<()> {
     terminal::enable_raw_mode()?;
 
-    let mut inputs = Vec::new();
+    let mut history = Trie::new();
     loop {
-        let input = get_input()?;
+        let input = get_input(&history)?;
         let lowered_input = input.to_lowercase();
 
         if lowered_input == "q" || lowered_input == "quit" || lowered_input == "exit" {
             return Ok(());
         }
 
-        if lowered_input == "history" {
-            println!("History:");
-            for input in &inputs {
-                println!("  {}", input);
-            }
-            continue;
-        }
-
-        println!("Storing '{}'", input);
-        inputs.push(input);
+        history.insert(&input);
     }
 }
 
-fn get_input() -> Result<String> {
+fn get_input(history: &Trie) -> Result<String> {
     print_prompt()?;
 
     let mut line_buffer = String::new();
@@ -104,6 +96,18 @@ fn get_input() -> Result<String> {
                     .queue(cursor::MoveLeft(1))?
                     .queue(terminal::Clear(ClearType::UntilNewLine))?
                     .flush()?;
+            }
+            KeyEvent {
+                code: KeyCode::Tab, ..
+            } => {
+                println!();
+                for word in history.words_with_prefix(&line_buffer) {
+                    stdout().queue(Print(format!("  {}", word).grey()))?;
+                    println!();
+                }
+                print_prompt()?;
+                print!("{}", line_buffer);
+                stdout().flush()?;
             }
             KeyEvent {
                 code: KeyCode::Char(c),
